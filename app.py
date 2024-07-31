@@ -1,20 +1,20 @@
 import os
-
 import streamlit as st
 from dotenv import load_dotenv
-from langchain.agents import AgentType, initialize_agent, load_tools
+from langchain.agents import AgentType, initialize_agent
 from langchain.callbacks import StreamlitCallbackHandler
-from langchain.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import MessagesPlaceholder
+from langchain_community.tools import DuckDuckGoSearchRun, WikipediaQueryRun
+from langchain_community.utilities import WikipediaAPIWrapper
 
 load_dotenv()
-
 
 def create_agent_chain():
     chat = ChatOpenAI(
         model_name=os.environ["OPENAI_API_MODEL"],
-        temperature=os.environ["OPENAI_API_TEMPERATURE"],
+        temperature=float(os.environ["OPENAI_API_TEMPERATURE"]),
         streaming=True,
     )
 
@@ -23,7 +23,10 @@ def create_agent_chain():
     }
     memory = ConversationBufferMemory(memory_key="memory", return_messages=True)
 
-    tools = load_tools(["ddg-search", "wikipedia"])
+    # WikipediaAPIWrapper インスタンスを作成
+    wikipedia_api_wrapper = WikipediaAPIWrapper()
+
+    tools = [DuckDuckGoSearchRun(), WikipediaQueryRun(api_wrapper=wikipedia_api_wrapper)]
     return initialize_agent(
         tools,
         chat,
@@ -32,10 +35,8 @@ def create_agent_chain():
         memory=memory,
     )
 
-
 if "agent_chain" not in st.session_state:
     st.session_state.agent_chain = create_agent_chain()
-
 
 st.title("langchain-streamlit-app")
 
